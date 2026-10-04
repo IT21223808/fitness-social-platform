@@ -1,9 +1,12 @@
+
 package com.fitness.fitness_api.service;
 
-import com.fitness.fitness_api.dto.PostResponse;
 import com.fitness.fitness_api.dto.MediaResponse;
+import com.fitness.fitness_api.dto.PostResponse;
 import com.fitness.fitness_api.entity.Post;
+import com.fitness.fitness_api.entity.PostMedia;
 import com.fitness.fitness_api.entity.User;
+import com.fitness.fitness_api.repository.PostMediaRepository;
 import com.fitness.fitness_api.repository.PostRepository;
 import com.fitness.fitness_api.repository.UserRepository;
 
@@ -19,9 +22,22 @@ import java.util.List;
 public class FeedService {
 
     private final PostRepository postRepository;
+    private final PostMediaRepository postMediaRepository;
     private final UserRepository userRepository;
-        public PostResponse mapToResponse(Post post) {
-                List<MediaResponse> media = List.of();
+
+    @Transactional(readOnly = true)
+    public PostResponse mapToResponse(Post post) {
+
+        List<MediaResponse> media = postMediaRepository
+                .findByPostOrderByDisplayOrderAsc(post)
+                .stream()
+                .map(item -> MediaResponse.builder()
+                        .id(item.getId())
+                        .mediaUrl(item.getMediaUrl())
+                        .mediaType(item.getMediaType())
+                        .displayOrder(item.getDisplayOrder())
+                        .build())
+                .toList();
 
         return PostResponse.builder()
                 .id(post.getId())
@@ -33,6 +49,7 @@ public class FeedService {
                 .createdAt(post.getCreatedAt())
                 .build();
     }
+
     @Transactional(readOnly = true)
     public List<PostResponse> getFeed(String email) {
 

@@ -21,6 +21,24 @@ public class UserController {
     private final UserRepository userRepository;
     private final FollowService followService;
 
+    @GetMapping
+public ResponseEntity<List<UserResponse>> getAllUsers() {
+
+    List<UserResponse> users = userRepository.findAll()
+            .stream()
+            .map(user -> UserResponse.builder()
+                    .id(user.getId())
+                    .username(user.getUsername())
+                    .email(user.getEmail())
+                    .firstName(user.getFirstName())
+                    .lastName(user.getLastName())
+                    .profileImageUrl(user.getProfileImageUrl())
+                    .build())
+            .toList();
+
+    return ResponseEntity.ok(users);
+}
+
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(
             Authentication authentication) {

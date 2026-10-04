@@ -1,3 +1,4 @@
+
 package com.fitness.fitness_api.service;
 
 import com.fitness.fitness_api.entity.Post;
@@ -16,9 +17,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 @Service
@@ -31,9 +34,7 @@ public class MediaService {
     private String uploadDirectory;
 
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024;
-
     private static final int MAX_MEDIA_PER_POST = 3;
-
     private static final int MAX_VIDEO_DURATION_SECONDS = 30;
 
     public PostMedia saveMedia(
@@ -54,8 +55,7 @@ public class MediaService {
         }
 
         // 3. Check maximum 3 media files
-        long mediaCount =
-                postMediaRepository.countByPost(post);
+        long mediaCount = postMediaRepository.countByPost(post);
 
         if (mediaCount >= MAX_MEDIA_PER_POST) {
             throw new RuntimeException(
@@ -74,64 +74,51 @@ public class MediaService {
         String contentType = file.getContentType();
 
         if (contentType == null) {
-            throw new RuntimeException(
-                    "Invalid file type"
-            );
+            throw new RuntimeException("Invalid file type");
         }
 
         PostMedia.MediaType mediaType;
 
         if (contentType.startsWith("image/")) {
-
             mediaType = PostMedia.MediaType.IMAGE;
 
         } else if (contentType.startsWith("video/")) {
-
             mediaType = PostMedia.MediaType.VIDEO;
 
             // 6. Validate video duration
             validateVideoDuration(file);
 
         } else {
-
             throw new RuntimeException(
                     "Only image and video files are allowed"
             );
         }
 
         // 7. Create upload directory
-        Path uploadPath =
-                Paths.get(uploadDirectory);
-
+        Path uploadPath = Paths.get(uploadDirectory);
         Files.createDirectories(uploadPath);
 
         // 8. Get file extension
-        String originalFilename =
-                file.getOriginalFilename();
-
+        String originalFilename = file.getOriginalFilename();
         String extension = "";
 
         if (originalFilename != null
                 && originalFilename.contains(".")) {
-
             extension = originalFilename.substring(
                     originalFilename.lastIndexOf(".")
             );
         }
 
         // 9. Generate unique filename
-        String filename =
-                UUID.randomUUID() + extension;
+        String filename = UUID.randomUUID() + extension;
 
         // 10. Create file path
-        Path filePath =
-                uploadPath.resolve(filename);
+        Path filePath = uploadPath.resolve(filename);
 
-        // 11. Save file
-        Files.copy(
-                file.getInputStream(),
-                filePath
-        );
+        // 11. Save uploaded file
+        try (InputStream inputStream = file.getInputStream()) {
+            Files.copy(inputStream, filePath);
+        }
 
         // 12. Save database record
         PostMedia media = PostMedia.builder()
@@ -143,37 +130,70 @@ public class MediaService {
 
         return postMediaRepository.save(media);
     }
+    public void deleteMedia(
+        Long mediaId,
+        Post post) throws IOException {
 
-    private void validateVideoDuration(
-            MultipartFile file) {
+    PostMedia media = postMediaRepository.findById(mediaId)
+            .orElseThrow(() ->
+                    new RuntimeException("Media not found"));
+
+    // Make sure this media belongs to the selected post
+    if (!media.getPost().getId().equals(post.getId())) {
+        throw new RuntimeException(
+                "Media does not belong to this post"
+        );
+    }
+
+    // Delete physical file
+    String mediaUrl = media.getMediaUrl();
+
+    if (mediaUrl != null && mediaUrl.startsWith("/uploads/")) {
+
+        String filename = mediaUrl.substring("/uploads/".length());
+
+        Path filePath = Paths.get(uploadDirectory)
+                .resolve(filename);
+
+        Files.deleteIfExists(filePath);
+    }
+
+    // Delete database record
+    postMediaRepository.delete(media);
+}
+
+    private void validateVideoDuration(MultipartFile file) {
 
         Path tempFile = null;
 
         try {
-
-            // Create temporary file
-            String originalFilename =
-                    file.getOriginalFilename();
-
+            // 1. Get file extension
+            String originalFilename = file.getOriginalFilename();
             String extension = ".tmp";
 
             if (originalFilename != null
                     && originalFilename.contains(".")) {
-
                 extension = originalFilename.substring(
                         originalFilename.lastIndexOf(".")
                 );
             }
 
+            // 2. Create temporary file
             tempFile = Files.createTempFile(
                     "fitness-video-",
                     extension
             );
 
-            // Copy uploaded video to temporary file
-            file.transferTo(tempFile.toFile());
+            // 3. Copy uploaded video without moving the original temp file
+            try (InputStream inputStream = file.getInputStream()) {
+                Files.copy(
+                        inputStream,
+                        tempFile,
+                        StandardCopyOption.REPLACE_EXISTING
+                );
+            }
 
-            // Read video metadata
+            // 4. Read video metadata
             try (SeekableByteChannel channel =
                          NIOUtils.readableChannel(tempFile.toFile())) {
 
@@ -186,7 +206,6 @@ public class MediaService {
                                 .getTotalDuration();
 
                 if (durationSeconds > MAX_VIDEO_DURATION_SECONDS) {
-
                     throw new RuntimeException(
                             "Video duration cannot exceed 30 seconds"
                     );
@@ -194,16 +213,14 @@ public class MediaService {
             }
 
         } catch (IOException | JCodecException e) {
-
             throw new RuntimeException(
-                    "Unable to validate video duration"
+                    "Unable to validate video duration",
+                    e
             );
 
         } finally {
-
-            // Delete temporary file
+            // 5. Delete temporary file
             if (tempFile != null) {
-
                 try {
                     Files.deleteIfExists(tempFile);
                 } catch (IOException ignored) {

@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
                         "timestamp", LocalDateTime.now(),
                         "status", 500,
                         "error", "Internal Server Error",
-                        "message", "Something went wrong"
+                        "message", ex.getMessage()
                 ));
     }
     @ExceptionHandler(MethodArgumentNotValidException.class)

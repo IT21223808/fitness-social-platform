@@ -102,4 +102,26 @@ public ResponseEntity<String> uploadMedia(
     return ResponseEntity.ok(
             "Media uploaded successfully");
 }
+@DeleteMapping("/{postId}/media/{mediaId}")
+public ResponseEntity<Void> deleteMedia(
+        @PathVariable Long postId,
+        @PathVariable Long mediaId,
+        Authentication authentication) throws Exception {
+
+    Post post = postRepository.findById(postId)
+            .orElseThrow(() ->
+                    new RuntimeException("Post not found"));
+
+    if (!post.getUser().getEmail()
+            .equals(authentication.getName())) {
+
+        return ResponseEntity.status(403).build();
+    }
+
+    mediaService.deleteMedia(
+            mediaId,
+            post);
+
+    return ResponseEntity.noContent().build();
+}
 }
