@@ -20,6 +20,8 @@ public class MealPlanResponse {
 
     private String description;
 
+    private String imageUrl;
+
     private List<MealResponse> meals;
 
     private LocalDateTime createdAt;

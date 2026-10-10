@@ -20,6 +20,8 @@ public class WorkoutPlanResponse {
 
     private String description;
 
+    private String imageUrl;
+
     private List<WorkoutExerciseResponse> exercises;
 
     private LocalDateTime createdAt;

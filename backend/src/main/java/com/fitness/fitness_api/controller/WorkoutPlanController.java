@@ -9,12 +9,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.security.core.Authentication;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -24,16 +27,34 @@ public class WorkoutPlanController {
 
     private final WorkoutPlanService workoutPlanService;
 
-    @PostMapping
+    @PostMapping(
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public ResponseEntity<WorkoutPlanResponse> createWorkoutPlan(
-            @Valid @RequestBody CreateWorkoutPlanRequest request,
-            Authentication authentication) {
+            @RequestPart("data")
+            @Valid CreateWorkoutPlanRequest request,
+
+            @RequestPart(
+                    value = "image",
+                    required = false
+            )
+            MultipartFile image,
+
+            @RequestPart(
+                    value = "media",
+                    required = false
+            )
+            List<MultipartFile> media,
+
+            Authentication authentication) throws IOException {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(
                         workoutPlanService.createWorkoutPlan(
                                 request,
+                                image,
+                                media,
                                 authentication.getName()
                         )
                 );
@@ -70,17 +91,30 @@ public class WorkoutPlanController {
         );
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(
+            value = "/{id}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public ResponseEntity<WorkoutPlanResponse>
     updateWorkoutPlan(
             @PathVariable Long id,
-            @Valid @RequestBody CreateWorkoutPlanRequest request,
-            Authentication authentication) {
+
+            @RequestPart("data")
+            @Valid CreateWorkoutPlanRequest request,
+
+            @RequestPart(
+                    value = "image",
+                    required = false
+            )
+            MultipartFile image,
+
+            Authentication authentication) throws IOException {
 
         return ResponseEntity.ok(
                 workoutPlanService.updateWorkoutPlan(
                         id,
                         request,
+                        image,
                         authentication.getName()
                 )
         );

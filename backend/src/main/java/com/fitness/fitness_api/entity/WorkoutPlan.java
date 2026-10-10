@@ -30,6 +30,8 @@ public class WorkoutPlan {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    private String imageUrl;
+
     @OneToMany(
             mappedBy = "workoutPlan",
             cascade = CascadeType.ALL,

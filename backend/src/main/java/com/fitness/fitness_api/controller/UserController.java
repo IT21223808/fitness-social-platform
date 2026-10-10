@@ -1,17 +1,19 @@
 package com.fitness.fitness_api.controller;
 
 import com.fitness.fitness_api.dto.FollowUserResponse;
+import com.fitness.fitness_api.dto.UpdateProfileRequest;
 import com.fitness.fitness_api.dto.UserResponse;
 import com.fitness.fitness_api.entity.User;
 import com.fitness.fitness_api.repository.UserRepository;
+import com.fitness.fitness_api.service.FollowService;
 
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.fitness.fitness_api.service.FollowService;
 
 @RestController
 @RequestMapping("/api/users")
@@ -22,22 +24,22 @@ public class UserController {
     private final FollowService followService;
 
     @GetMapping
-public ResponseEntity<List<UserResponse>> getAllUsers() {
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
 
-    List<UserResponse> users = userRepository.findAll()
-            .stream()
-            .map(user -> UserResponse.builder()
-                    .id(user.getId())
-                    .username(user.getUsername())
-                    .email(user.getEmail())
-                    .firstName(user.getFirstName())
-                    .lastName(user.getLastName())
-                    .profileImageUrl(user.getProfileImageUrl())
-                    .build())
-            .toList();
+        List<UserResponse> users = userRepository.findAll()
+                .stream()
+                .map(user -> UserResponse.builder()
+                        .id(user.getId())
+                        .username(user.getUsername())
+                        .email(user.getEmail())
+                        .firstName(user.getFirstName())
+                        .lastName(user.getLastName())
+                        .profileImageUrl(user.getProfileImageUrl())
+                        .build())
+                .toList();
 
-    return ResponseEntity.ok(users);
-}
+        return ResponseEntity.ok(users);
+    }
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(
@@ -60,83 +62,115 @@ public ResponseEntity<List<UserResponse>> getAllUsers() {
 
         return ResponseEntity.ok(response);
     }
+
+    @PutMapping("/me")
+    public ResponseEntity<UserResponse> updateProfile(
+            @RequestBody UpdateProfileRequest request,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setProfileImageUrl(request.getProfileImageUrl());
+
+        User updatedUser = userRepository.save(user);
+
+        UserResponse response = UserResponse.builder()
+                .id(updatedUser.getId())
+                .username(updatedUser.getUsername())
+                .email(updatedUser.getEmail())
+                .firstName(updatedUser.getFirstName())
+                .lastName(updatedUser.getLastName())
+                .profileImageUrl(updatedUser.getProfileImageUrl())
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
-public ResponseEntity<UserResponse> getUserById(
-        @PathVariable Long id) {
+    public ResponseEntity<UserResponse> getUserById(
+            @PathVariable Long id) {
 
-    User user = userRepository.findById(id)
-            .orElseThrow(() ->
-                    new RuntimeException("User not found"));
+        User user = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
 
-    UserResponse response = UserResponse.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .firstName(user.getFirstName())
-            .lastName(user.getLastName())
-            .profileImageUrl(user.getProfileImageUrl())
-            .build();
+        UserResponse response = UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .profileImageUrl(user.getProfileImageUrl())
+                .build();
 
-    return ResponseEntity.ok(response);
-}
-@PostMapping("/{id}/follow")
-public ResponseEntity<String> followUser(
-        @PathVariable Long id,
-        Authentication authentication) {
+        return ResponseEntity.ok(response);
+    }
 
-    followService.follow(
-            id,
-            authentication.getName()
-    );
+    @PostMapping("/{id}/follow")
+    public ResponseEntity<String> followUser(
+            @PathVariable Long id,
+            Authentication authentication) {
 
-    return ResponseEntity.ok("User followed successfully");
-}
+        followService.follow(
+                id,
+                authentication.getName()
+        );
 
-@DeleteMapping("/{id}/follow")
-public ResponseEntity<String> unfollowUser(
-        @PathVariable Long id,
-        Authentication authentication) {
+        return ResponseEntity.ok("User followed successfully");
+    }
 
-    followService.unfollow(
-            id,
-            authentication.getName()
-    );
+    @DeleteMapping("/{id}/follow")
+    public ResponseEntity<String> unfollowUser(
+            @PathVariable Long id,
+            Authentication authentication) {
 
-    return ResponseEntity.ok("User unfollowed successfully");
-}
-@GetMapping("/{id}/followers")
-public ResponseEntity<List<FollowUserResponse>> getFollowers(
-        @PathVariable Long id) {
+        followService.unfollow(
+                id,
+                authentication.getName()
+        );
 
-    return ResponseEntity.ok(
-            followService.getFollowers(id)
-    );
-}
+        return ResponseEntity.ok("User unfollowed successfully");
+    }
 
-@GetMapping("/{id}/following")
-public ResponseEntity<List<FollowUserResponse>> getFollowing(
-        @PathVariable Long id) {
+    @GetMapping("/{id}/followers")
+    public ResponseEntity<List<FollowUserResponse>> getFollowers(
+            @PathVariable Long id) {
 
-    return ResponseEntity.ok(
-            followService.getFollowing(id)
-    );
-}
+        return ResponseEntity.ok(
+                followService.getFollowers(id)
+        );
+    }
 
-@GetMapping("/{id}/followers/count")
-public ResponseEntity<Long> getFollowersCount(
-        @PathVariable Long id) {
+    @GetMapping("/{id}/following")
+    public ResponseEntity<List<FollowUserResponse>> getFollowing(
+            @PathVariable Long id) {
 
-    return ResponseEntity.ok(
-            followService.getFollowersCount(id)
-    );
-}
+        return ResponseEntity.ok(
+                followService.getFollowing(id)
+        );
+    }
 
-@GetMapping("/{id}/following/count")
-public ResponseEntity<Long> getFollowingCount(
-        @PathVariable Long id) {
+    @GetMapping("/{id}/followers/count")
+    public ResponseEntity<Long> getFollowersCount(
+            @PathVariable Long id) {
 
-    return ResponseEntity.ok(
-            followService.getFollowingCount(id)
-    );
-}
+        return ResponseEntity.ok(
+                followService.getFollowersCount(id)
+        );
+    }
+
+    @GetMapping("/{id}/following/count")
+    public ResponseEntity<Long> getFollowingCount(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                followService.getFollowingCount(id)
+        );
+    }
 }

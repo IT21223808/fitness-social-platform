@@ -9,12 +9,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.security.core.Authentication;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -24,16 +27,34 @@ public class MealPlanController {
 
     private final MealPlanService mealPlanService;
 
-    @PostMapping
+    @PostMapping(
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public ResponseEntity<MealPlanResponse> createMealPlan(
-            @Valid @RequestBody CreateMealPlanRequest request,
-            Authentication authentication) {
+            @RequestPart("data")
+            @Valid CreateMealPlanRequest request,
+
+            @RequestPart(
+                    value = "image",
+                    required = false
+            )
+            MultipartFile image,
+
+            @RequestPart(
+                    value = "media",
+                    required = false
+            )
+            List<MultipartFile> media,
+
+            Authentication authentication) throws IOException {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(
                         mealPlanService.createMealPlan(
                                 request,
+                                image,
+                                media,
                                 authentication.getName()
                         )
                 );
@@ -69,17 +90,30 @@ public class MealPlanController {
         );
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(
+            value = "/{id}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public ResponseEntity<MealPlanResponse>
     updateMealPlan(
             @PathVariable Long id,
-            @Valid @RequestBody CreateMealPlanRequest request,
-            Authentication authentication) {
+
+            @RequestPart("data")
+            @Valid CreateMealPlanRequest request,
+
+            @RequestPart(
+                    value = "image",
+                    required = false
+            )
+            MultipartFile image,
+
+            Authentication authentication) throws IOException {
 
         return ResponseEntity.ok(
                 mealPlanService.updateMealPlan(
                         id,
                         request,
+                        image,
                         authentication.getName()
                 )
         );

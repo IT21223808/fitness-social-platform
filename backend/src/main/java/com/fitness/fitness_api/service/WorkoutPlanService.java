@@ -2,19 +2,29 @@ package com.fitness.fitness_api.service;
 
 import com.fitness.fitness_api.dto.CreateWorkoutPlanRequest;
 import com.fitness.fitness_api.dto.WorkoutPlanResponse;
+import com.fitness.fitness_api.entity.Post;
 import com.fitness.fitness_api.entity.User;
 import com.fitness.fitness_api.entity.WorkoutExercise;
 import com.fitness.fitness_api.entity.WorkoutPlan;
+import com.fitness.fitness_api.repository.PostRepository;
 import com.fitness.fitness_api.repository.UserRepository;
 import com.fitness.fitness_api.repository.WorkoutPlanRepository;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,11 +32,20 @@ public class WorkoutPlanService {
 
     private final WorkoutPlanRepository workoutPlanRepository;
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final MediaService mediaService;
+
+    @Value("${app.upload.dir}")
+    private String uploadDirectory;
+
+    private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
     @Transactional
     public WorkoutPlanResponse createWorkoutPlan(
             CreateWorkoutPlanRequest request,
-            String email) {
+            MultipartFile image,
+            List<MultipartFile> media,
+            String email) throws IOException {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
@@ -37,6 +56,15 @@ public class WorkoutPlanService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .build();
+
+        /*
+         * This image belongs to the workout plan itself.
+         * Existing Workout Plan page can still use this image.
+         */
+        if (image != null && !image.isEmpty()) {
+            String imageUrl = saveImage(image);
+            plan.setImageUrl(imageUrl);
+        }
 
         List<WorkoutExercise> exercises = new ArrayList<>();
 
@@ -56,9 +84,52 @@ public class WorkoutPlanService {
 
         plan.setExercises(exercises);
 
-        return mapToResponse(
-                workoutPlanRepository.save(plan)
-        );
+        WorkoutPlan savedPlan =
+                workoutPlanRepository.save(plan);
+
+        /*
+         * Create the social post for the workout plan.
+         */
+        Post post = Post.builder()
+                .user(user)
+                .description(savedPlan.getDescription())
+                .type(Post.PostType.WORKOUT_PLAN)
+                .workoutPlan(savedPlan)
+                .build();
+
+        Post savedPost = postRepository.save(post);
+
+        /*
+         * Media uploaded from Home Create Post
+         * belongs to this social post.
+         *
+         * Maximum 3 image/video files are supported.
+         */
+        if (media != null && !media.isEmpty()) {
+
+            int displayOrder = 1;
+
+            for (MultipartFile file : media) {
+
+                if (file == null || file.isEmpty()) {
+                    continue;
+                }
+
+                mediaService.saveMedia(
+                        savedPost,
+                        file,
+                        displayOrder
+                );
+
+                displayOrder++;
+
+                if (displayOrder > 3) {
+                    break;
+                }
+            }
+        }
+
+        return mapToResponse(savedPlan);
     }
 
     @Transactional(readOnly = true)
@@ -100,7 +171,8 @@ public class WorkoutPlanService {
     public WorkoutPlanResponse updateWorkoutPlan(
             Long id,
             CreateWorkoutPlanRequest request,
-            String email) {
+            MultipartFile image,
+            String email) throws IOException {
 
         WorkoutPlan plan = workoutPlanRepository.findById(id)
                 .orElseThrow(() ->
@@ -114,6 +186,15 @@ public class WorkoutPlanService {
 
         plan.setTitle(request.getTitle());
         plan.setDescription(request.getDescription());
+
+        if (image != null && !image.isEmpty()) {
+
+            deleteImage(plan.getImageUrl());
+
+            String imageUrl = saveImage(image);
+
+            plan.setImageUrl(imageUrl);
+        }
 
         plan.getExercises().clear();
 
@@ -131,9 +212,23 @@ public class WorkoutPlanService {
             plan.getExercises().add(exercise);
         }
 
-        return mapToResponse(
-                workoutPlanRepository.save(plan)
-        );
+        WorkoutPlan updatedPlan =
+                workoutPlanRepository.save(plan);
+
+        /*
+         * Update the related social post description.
+         */
+        postRepository
+                .findByWorkoutPlan(plan)
+                .ifPresent(post -> {
+
+                    post.setDescription(
+                            updatedPlan.getDescription());
+
+                    postRepository.save(post);
+                });
+
+        return mapToResponse(updatedPlan);
     }
 
     @Transactional
@@ -151,7 +246,88 @@ public class WorkoutPlanService {
                     "You can only delete your own workout plan");
         }
 
+        deleteImage(plan.getImageUrl());
+
+        /*
+         * Delete related social post first.
+         */
+        postRepository
+                .findByWorkoutPlan(plan)
+                .ifPresent(post -> {
+
+                    postRepository.delete(post);
+                });
+
         workoutPlanRepository.delete(plan);
+    }
+
+    private String saveImage(
+            MultipartFile image) throws IOException {
+
+        if (image.getSize() > MAX_IMAGE_SIZE) {
+            throw new RuntimeException(
+                    "Image size cannot exceed 5 MB");
+        }
+
+        String contentType = image.getContentType();
+
+        if (contentType == null
+                || !contentType.startsWith("image/")) {
+
+            throw new RuntimeException(
+                    "Only image files are allowed");
+        }
+
+        Path uploadPath = Paths.get(uploadDirectory);
+
+        Files.createDirectories(uploadPath);
+
+        String originalFilename =
+                image.getOriginalFilename();
+
+        String extension = "";
+
+        if (originalFilename != null
+                && originalFilename.contains(".")) {
+
+            extension = originalFilename.substring(
+                    originalFilename.lastIndexOf(".")
+            );
+        }
+
+        String filename =
+                UUID.randomUUID() + extension;
+
+        Path filePath =
+                uploadPath.resolve(filename);
+
+        try (InputStream inputStream =
+                     image.getInputStream()) {
+
+            Files.copy(inputStream, filePath);
+        }
+
+        return "/uploads/" + filename;
+    }
+
+    private void deleteImage(String imageUrl) {
+
+        if (imageUrl == null
+                || !imageUrl.startsWith("/uploads/")) {
+            return;
+        }
+
+        String filename =
+                imageUrl.substring("/uploads/".length());
+
+        Path filePath =
+                Paths.get(uploadDirectory)
+                        .resolve(filename);
+
+        try {
+            Files.deleteIfExists(filePath);
+        } catch (IOException ignored) {
+        }
     }
 
     private WorkoutPlanResponse mapToResponse(
@@ -180,6 +356,7 @@ public class WorkoutPlanService {
                 .username(plan.getUser().getUsername())
                 .title(plan.getTitle())
                 .description(plan.getDescription())
+                .imageUrl(plan.getImageUrl())
                 .exercises(exercises)
                 .createdAt(plan.getCreatedAt())
                 .updatedAt(plan.getUpdatedAt())

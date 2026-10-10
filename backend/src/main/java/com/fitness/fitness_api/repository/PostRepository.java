@@ -1,7 +1,9 @@
 package com.fitness.fitness_api.repository;
 
+import com.fitness.fitness_api.entity.MealPlan;
 import com.fitness.fitness_api.entity.Post;
 import com.fitness.fitness_api.entity.User;
+import com.fitness.fitness_api.entity.WorkoutPlan;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,6 +19,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByUserOrderByCreatedAtDesc(User user);
 
     Optional<Post> findByIdAndUser(Long id, User user);
+
+    Optional<Post> findByWorkoutPlan(WorkoutPlan workoutPlan);
+
+    Optional<Post> findByMealPlan(MealPlan mealPlan);
 
     @Query("""
             SELECT p

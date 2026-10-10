@@ -30,6 +30,8 @@ public class MealPlan {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    private String imageUrl;
+
     @OneToMany(
             mappedBy = "mealPlan",
             cascade = CascadeType.ALL,

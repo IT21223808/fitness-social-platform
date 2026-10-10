@@ -29,6 +29,14 @@ public class Post {
     @Column(nullable = false)
     private PostType type;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "workout_plan_id")
+    private WorkoutPlan workoutPlan;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "meal_plan_id")
+    private MealPlan mealPlan;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
