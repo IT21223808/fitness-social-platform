@@ -12,6 +12,9 @@ import {
   Dumbbell,
   Flame,
   Users,
+  X,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
@@ -21,9 +24,52 @@ type User = {
   email?: string;
   firstName?: string;
   lastName?: string;
+  profileImageUrl?: string;
   bio?: string;
   location?: string;
   createdAt?: string;
+};
+
+type WorkoutExercise = {
+  id: number;
+  exerciseName: string;
+  sets: number;
+  reps: number;
+  duration?: number;
+};
+
+type WorkoutPlan = {
+  id: number;
+  userId: number;
+  username: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  exercises: WorkoutExercise[];
+  createdAt: string;
+  updatedAt?: string;
+};
+
+type Meal = {
+  id: number;
+  mealName: string;
+  foodName: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fats?: number;
+};
+
+type MealPlan = {
+  id: number;
+  userId: number;
+  username: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  meals: Meal[];
+  createdAt: string;
+  updatedAt?: string;
 };
 
 type Post = {
@@ -34,12 +80,16 @@ type Post = {
   type: string;
   createdAt: string;
   updatedAt?: string;
+
   media?: {
     id: number;
     mediaUrl: string;
     mediaType: string;
     displayOrder: number;
   }[];
+
+  workoutPlan?: WorkoutPlan;
+  mealPlan?: MealPlan;
 };
 
 export default function ProfilePage() {
@@ -54,50 +104,91 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function loadProfile() {
-      try {
-        setLoading(true);
-        setError("");
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [profileImageUrl, setProfileImageUrl] = useState("");
 
-        const currentUser = await apiRequest<User>("/users/me");
+  async function loadProfile() {
+    try {
+      setLoading(true);
+      setError("");
 
-        setUser(currentUser);
+      const currentUser = await apiRequest<User>("/users/me");
 
-        const [followersCount, followingCount, allPosts] =
-          await Promise.all([
-            apiRequest<number>(
-              `/users/${currentUser.id}/followers/count`
-            ),
-            apiRequest<number>(
-              `/users/${currentUser.id}/following/count`
-            ),
-            apiRequest<Post[]>("/posts"),
-          ]);
+      setUser(currentUser);
+      setFirstName(currentUser.firstName || "");
+      setLastName(currentUser.lastName || "");
+      setProfileImageUrl(currentUser.profileImageUrl || "");
 
-        setFollowers(followersCount);
-        setFollowing(followingCount);
+      const [followersCount, followingCount, allPosts] =
+        await Promise.all([
+          apiRequest<number>(
+            `/users/${currentUser.id}/followers/count`
+          ),
+          apiRequest<number>(
+            `/users/${currentUser.id}/following/count`
+          ),
+          apiRequest<Post[]>("/posts"),
+        ]);
 
-        const myPosts = allPosts.filter(
-          (post) => post.userId === currentUser.id
-        );
+      setFollowers(followersCount);
+      setFollowing(followingCount);
 
-        setPosts(myPosts);
-      } catch (error) {
-        console.error("Failed to load profile:", error);
+      const myPosts = allPosts.filter(
+        (post) => post.userId === currentUser.id
+      );
 
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Failed to load profile"
-        );
-      } finally {
-        setLoading(false);
-      }
+      setPosts(myPosts);
+    } catch (error) {
+      console.error("Failed to load profile:", error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load profile"
+      );
+    } finally {
+      setLoading(false);
     }
+  }
 
-    loadProfile();
+  useEffect(() => {
+    void loadProfile();
   }, []);
+
+  async function handleSaveProfile() {
+    try {
+      setSaving(true);
+      setFormError("");
+
+      const updatedUser = await apiRequest<User>("/users/me", {
+        method: "PUT",
+        body: JSON.stringify({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          profileImageUrl: profileImageUrl.trim(),
+        }),
+      });
+
+      setUser(updatedUser);
+      setFirstName(updatedUser.firstName || "");
+      setLastName(updatedUser.lastName || "");
+      setProfileImageUrl(updatedUser.profileImageUrl || "");
+      setEditing(false);
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update profile"
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -161,6 +252,8 @@ export default function ProfilePage() {
     ? new Date(user.createdAt).getFullYear()
     : new Date().getFullYear();
 
+  const profileImage = user.profileImageUrl || "";
+
   return (
     <div className="min-h-screen bg-[#0B0F17]">
 
@@ -188,8 +281,16 @@ export default function ProfilePage() {
                   <div className="flex items-end gap-4">
 
                     {/* Avatar */}
-                    <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-2xl border-4 border-[#141A23] bg-[#10B981]/20 text-3xl font-bold text-[#10B981]">
-                      {initial}
+                    <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-[#141A23] bg-[#10B981]/20 text-3xl font-bold text-[#10B981]">
+                      {profileImage ? (
+                        <img
+                          src={profileImage}
+                          alt={fullName}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        initial
+                      )}
                     </div>
 
                     <div className="pb-1">
@@ -209,6 +310,10 @@ export default function ProfilePage() {
                   {/* Edit */}
                   <button
                     type="button"
+                    onClick={() => {
+                      setFormError("");
+                      setEditing(true);
+                    }}
                     className="flex items-center gap-2 rounded-xl border border-[#27303D] bg-[#0B0F17] px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:border-[#10B981] hover:text-[#10B981]"
                   >
                     <Settings className="h-4 w-4" />
@@ -216,6 +321,92 @@ export default function ProfilePage() {
                   </button>
 
                 </div>
+
+                {editing && (
+                  <div className="mt-6 rounded-2xl border border-[#27303D] bg-[#0B0F17] p-5">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-white">
+                        Edit profile
+                      </h2>
+
+                      <button
+                        type="button"
+                        onClick={() => setEditing(false)}
+                        className="rounded-lg p-2 text-slate-400 transition hover:bg-[#1A2231] hover:text-white"
+                        aria-label="Close editor"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    {formError && (
+                      <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                        {formError}
+                      </div>
+                    )}
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="text-sm text-slate-300">
+                        <span className="mb-2 block">First name</span>
+                        <input
+                          value={firstName}
+                          onChange={(event) => setFirstName(event.target.value)}
+                          className="w-full rounded-xl border border-[#27303D] bg-[#141A23] px-3 py-2.5 text-white outline-none placeholder:text-slate-500 focus:border-[#10B981]"
+                          placeholder="First name"
+                        />
+                      </label>
+
+                      <label className="text-sm text-slate-300">
+                        <span className="mb-2 block">Last name</span>
+                        <input
+                          value={lastName}
+                          onChange={(event) => setLastName(event.target.value)}
+                          className="w-full rounded-xl border border-[#27303D] bg-[#141A23] px-3 py-2.5 text-white outline-none placeholder:text-slate-500 focus:border-[#10B981]"
+                          placeholder="Last name"
+                        />
+                      </label>
+                    </div>
+
+                    <label className="mt-4 block text-sm text-slate-300">
+                      <span className="mb-2 block">Profile image URL</span>
+                      <input
+                        value={profileImageUrl}
+                        onChange={(event) => setProfileImageUrl(event.target.value)}
+                        className="w-full rounded-xl border border-[#27303D] bg-[#141A23] px-3 py-2.5 text-white outline-none placeholder:text-slate-500 focus:border-[#10B981]"
+                        placeholder="https://example.com/avatar.jpg"
+                      />
+                    </label>
+
+                    <div className="mt-5 flex justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditing(false)}
+                        className="rounded-xl border border-[#27303D] px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:border-[#10B981] hover:text-white"
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveProfile()}
+                        disabled={saving}
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#10B981] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0f9d74] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 size={15} className="animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Check size={15} />
+                            Save changes
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Bio */}
                 <div className="mt-5 max-w-2xl">

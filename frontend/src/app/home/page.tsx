@@ -8,6 +8,48 @@ import PostCard from "@/components/post/PostCard";
 import CreatePost from "@/components/post/CreatePost";
 import { apiRequest } from "@/lib/api";
 
+type WorkoutExercise = {
+  id: number;
+  exerciseName: string;
+  sets: number;
+  reps: number;
+  duration?: number;
+};
+
+type WorkoutPlan = {
+  id: number;
+  userId: number;
+  username: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  exercises: WorkoutExercise[];
+  createdAt: string;
+  updatedAt?: string;
+};
+
+type Meal = {
+  id: number;
+  mealName: string;
+  foodName: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fats?: number;
+};
+
+type MealPlan = {
+  id: number;
+  userId: number;
+  username: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  meals: Meal[];
+  createdAt: string;
+  updatedAt?: string;
+};
+
 type Post = {
   id: number;
   userId: number;
@@ -16,12 +58,16 @@ type Post = {
   type: string;
   createdAt: string;
   updatedAt?: string;
+
   media?: {
     id: number;
     mediaUrl: string;
     mediaType: string;
     displayOrder: number;
   }[];
+
+  workoutPlan?: WorkoutPlan;
+  mealPlan?: MealPlan;
 };
 
 export default function Home() {
@@ -40,6 +86,7 @@ export default function Home() {
       setError("");
 
       const data = await apiRequest<Post[]>("/feed");
+
       setPosts(data);
     } catch (error) {
       console.error("Failed to load feed:", error);
@@ -145,27 +192,32 @@ export default function Home() {
                   </div>
                 )}
 
-                {!loading && !error && posts.length === 0 && (
-                  <div className="rounded-2xl border border-[#27303D] bg-[#141A23] p-10 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#10B981]/10 text-2xl">
-                      🏋️
+                {!loading &&
+                  !error &&
+                  posts.length === 0 && (
+                    <div className="rounded-2xl border border-[#27303D] bg-[#141A23] p-10 text-center">
+                      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#10B981]/10 text-2xl">
+                        🏋️
+                      </div>
+
+                      <h2 className="mt-4 font-semibold text-white">
+                        Your feed is empty
+                      </h2>
+
+                      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">
+                        Follow fitness enthusiasts and share your
+                        first workout to start building your feed.
+                      </p>
                     </div>
-
-                    <h2 className="mt-4 font-semibold text-white">
-                      Your feed is empty
-                    </h2>
-
-                    <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">
-                      Follow fitness enthusiasts and share your
-                      first workout to start building your feed.
-                    </p>
-                  </div>
-                )}
+                  )}
 
                 {!loading &&
                   !error &&
                   posts.map((post) => (
-                    <PostCard key={post.id} post={post} />
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                    />
                   ))}
               </section>
 
@@ -228,7 +280,9 @@ export default function Home() {
 
                     <button
                       type="button"
-                      onClick={() => router.push("/explore")}
+                      onClick={() =>
+                        router.push("/explore")
+                      }
                       className="text-xs font-medium text-[#10B981] hover:text-[#059669]"
                     >
                       See all

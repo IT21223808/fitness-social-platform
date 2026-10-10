@@ -103,7 +103,9 @@ export default function Sidebar() {
 
         {/* Mobile close */}
         <button
+          type="button"
           onClick={() => setMobileOpen(false)}
+          aria-label="Close navigation"
           className="ml-auto rounded-lg p-2 text-gray-400 hover:bg-[#1A212C] hover:text-white lg:hidden"
         >
           <X size={21} />
@@ -118,16 +120,19 @@ export default function Sidebar() {
           const isActive =
             item.path === "/home"
               ? pathname === "/home"
-              : pathname.startsWith(item.path);
+              : pathname === item.path ||
+                pathname.startsWith(`${item.path}/`);
 
           return (
             <button
+              type="button"
               key={item.path}
               onClick={() => handleNavigation(item.path)}
+              aria-current={isActive ? "page" : undefined}
               className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
                 isActive
-                  ? "bg-[#10B981]/10 text-[#10B981]"
-                  : "text-gray-400 hover:bg-[#141A23] hover:text-white"
+                  ? "border border-[#10B981]/20 bg-[#10B981]/10 text-[#10B981]"
+                  : "border border-transparent text-gray-400 hover:bg-[#141A23] hover:text-white"
               }`}
             >
               <Icon
@@ -136,6 +141,10 @@ export default function Sidebar() {
               />
 
               <span>{item.label}</span>
+
+              {item.path === "/notifications" && isActive && (
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#10B981]" />
+              )}
             </button>
           );
         })}
@@ -144,6 +153,7 @@ export default function Sidebar() {
       {/* Logout */}
       <div className="border-t border-[#27303D] p-3">
         <button
+          type="button"
           onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-400 transition hover:bg-red-500/10 hover:text-red-400"
         >
@@ -164,18 +174,21 @@ export default function Sidebar() {
       {/* Mobile Top Bar */}
       <div className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-[#27303D] bg-[#0B0F17]/95 px-4 backdrop-blur lg:hidden">
         <button
+          type="button"
           onClick={() => setMobileOpen(true)}
+          aria-label="Open navigation"
           className="rounded-xl p-2 text-gray-300 transition hover:bg-[#141A23] hover:text-white"
         >
           <Menu size={23} />
         </button>
 
         <button
+          type="button"
           onClick={() => router.push("/home")}
           className="flex items-center gap-2 text-lg font-bold"
         >
           <Image
-            src="/logo.png"
+            src="/fit_logo.png"
             alt="FitSocial"
             width={30}
             height={30}
@@ -187,9 +200,16 @@ export default function Sidebar() {
           </span>
         </button>
 
+        {/* Mobile notification navigation */}
         <button
+          type="button"
           onClick={() => router.push("/notifications")}
-          className="rounded-xl p-2 text-gray-300 transition hover:bg-[#141A23] hover:text-white"
+          aria-label="Open notifications"
+          className={`relative rounded-xl p-2 transition hover:bg-[#141A23] ${
+            pathname === "/notifications"
+              ? "text-[#10B981]"
+              : "text-gray-300 hover:text-[#10B981]"
+          }`}
         >
           <Bell size={21} />
         </button>
@@ -200,11 +220,13 @@ export default function Sidebar() {
         <div
           className="fixed inset-0 z-50 bg-black/60 lg:hidden"
           onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* Mobile Drawer */}
       <aside
+        aria-label="Mobile navigation"
         className={`fixed left-0 top-0 z-[60] flex h-screen w-72 flex-col border-r border-[#27303D] bg-[#0B0F17] transition-transform duration-300 lg:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}

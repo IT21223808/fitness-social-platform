@@ -17,6 +17,47 @@ type Comment = {
   content: string;
   createdAt: string;
 };
+type WorkoutExercise = {
+  id: number;
+  exerciseName: string;
+  sets: number;
+  reps: number;
+  duration?: number;
+};
+
+type WorkoutPlan = {
+  id: number;
+  userId: number;
+  username: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  exercises: WorkoutExercise[];
+  createdAt: string;
+  updatedAt?: string;
+};
+
+type Meal = {
+  id: number;
+  mealName: string;
+  foodName: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fats?: number;
+};
+
+type MealPlan = {
+  id: number;
+  userId: number;
+  username: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  meals: Meal[];
+  createdAt: string;
+  updatedAt?: string;
+};
 
 type Post = {
   id: number;
@@ -26,12 +67,16 @@ type Post = {
   type: string;
   createdAt: string;
   updatedAt?: string;
+
   media?: {
     id: number;
     mediaUrl: string;
     mediaType: string;
     displayOrder: number;
   }[];
+
+  workoutPlan?: WorkoutPlan;
+  mealPlan?: MealPlan;
 };
 
 export default function PostPage() {
