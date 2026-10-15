@@ -136,6 +136,7 @@ public class PostService {
                 .userId(post.getUser().getId())
                 .username(post.getUser().getUsername())
                 .description(post.getDescription())
+                        .profileImageUrl(post.getUser().getProfileImageUrl())
                 .type(post.getType())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())

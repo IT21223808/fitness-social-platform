@@ -1,3 +1,4 @@
+
 package com.fitness.fitness_api.dto;
 
 import lombok.Builder;
@@ -13,4 +14,6 @@ public class UserResponse {
     private String firstName;
     private String lastName;
     private String profileImageUrl;
+    private String bio;
+    private String coverImageUrl;
 }

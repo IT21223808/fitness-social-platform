@@ -1,3 +1,4 @@
+
 package com.fitness.fitness_api.entity;
 
 import jakarta.persistence.*;
@@ -32,6 +33,11 @@ public class User {
     private String lastName;
 
     private String profileImageUrl;
+
+    private String coverImageUrl;
+
+    @Column(length = 500)
+    private String bio;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

@@ -15,6 +15,7 @@ public class PostResponse {
     private Long id;
     private Long userId;
     private String username;
+    private String profileImageUrl;
     private String description;
     private PostType type;
     private LocalDateTime createdAt;

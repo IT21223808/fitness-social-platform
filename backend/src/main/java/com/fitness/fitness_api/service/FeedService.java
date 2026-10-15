@@ -63,6 +63,7 @@ public class FeedService {
                 .userId(post.getUser().getId())
                 .username(post.getUser().getUsername())
                 .description(post.getDescription())
+                .profileImageUrl(post.getUser().getProfileImageUrl())
                 .type(post.getType())
                 .media(media)
                 .workoutPlan(workoutPlan)
