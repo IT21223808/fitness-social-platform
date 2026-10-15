@@ -23,6 +23,7 @@ type User = {
   username: string;
   firstName?: string;
   lastName?: string;
+  profileImageUrl?: string;
 };
 
 type Notification = {
@@ -32,6 +33,20 @@ type Notification = {
   isRead: boolean;
   createdAt: string;
 };
+
+const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+).replace(/\/api\/?$/, "");
+
+function resolveProfileImageUrl(url?: string) {
+  if (!url) return "";
+
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+
+  return `${API_BASE_URL}${url.startsWith("/") ? url : `/${url}`}`;
+}
 
 function getNotificationStyle(type: string) {
   const normalizedType = type.toUpperCase();
@@ -212,6 +227,8 @@ export default function Header() {
     user?.username ||
     "User";
 
+  const profileImageUrl = resolveProfileImageUrl(user?.profileImageUrl);
+
   return (
     <header className="sticky top-0 z-40 border-b border-[#27303D] bg-[#0B0F17]/95 backdrop-blur">
       <div className="flex h-16 items-center justify-between gap-4 px-4 lg:px-8">
@@ -323,10 +340,7 @@ export default function Header() {
                   notifications.length === 0 && (
                     <div className="px-5 py-10 text-center">
                       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#10B981]/10">
-                        <Bell
-                          size={23}
-                          className="text-[#10B981]"
-                        />
+                        <Bell size={23} className="text-[#10B981]" />
                       </div>
 
                       <p className="mt-3 text-sm font-medium text-white">
@@ -345,10 +359,7 @@ export default function Header() {
                   latestNotifications.length > 0 && (
                     <div className="max-h-[350px] overflow-y-auto">
                       {latestNotifications.map((notification) => {
-                        const style = getNotificationStyle(
-                          notification.type
-                        );
-
+                        const style = getNotificationStyle(notification.type);
                         const Icon = style.icon;
 
                         return (
@@ -406,9 +417,17 @@ export default function Header() {
             onClick={() => router.push("/profile")}
             className="flex items-center gap-3 rounded-xl border border-transparent px-2 py-1.5 transition hover:border-[#27303D] hover:bg-[#141A23]"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-sm font-bold text-[#06110D]">
-              {user?.username?.charAt(0).toUpperCase() || (
-                <UserCircle size={20} />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-sm font-bold text-[#06110D]">
+              {profileImageUrl ? (
+                <img
+                  src={profileImageUrl}
+                  alt={`${user?.username || "User"}'s profile`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                user?.username?.charAt(0).toUpperCase() || (
+                  <UserCircle size={20} />
+                )
               )}
             </div>
 
