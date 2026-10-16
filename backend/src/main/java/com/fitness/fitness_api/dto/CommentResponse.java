@@ -1,3 +1,4 @@
+
 package com.fitness.fitness_api.dto;
 
 import lombok.Builder;
@@ -16,6 +17,8 @@ public class CommentResponse {
     private Long userId;
 
     private String username;
+
+    private String profileImageUrl;
 
     private String content;
 

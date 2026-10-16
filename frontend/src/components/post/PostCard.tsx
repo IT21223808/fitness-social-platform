@@ -14,6 +14,7 @@ import {
     Check,
     Dumbbell,
     Utensils,
+    Send,
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
@@ -104,6 +105,18 @@ type User = {
     lastName?: string;
 };
 
+type Comment = {
+    id: number;
+    postId: number;
+    userId: number;
+    username: string;
+    profileImageUrl?: string | null;
+    content: string;
+    createdAt: string;
+    updatedAt?: string;
+};
+
+
 type PostCardProps = {
     post: Post;
 };
@@ -145,6 +158,13 @@ export default function PostCard({ post }: PostCardProps) {
     const isWorkoutPlan = post.type === "WORKOUT_PLAN";
     const isMealPlan = post.type === "MEAL_PLAN";
     const isPlanPost = isWorkoutPlan || isMealPlan;
+
+    const [commentsOpen, setCommentsOpen] = useState(false);
+    const [comments, setComments] = useState<Comment[]>([]);
+    const [commentInput, setCommentInput] = useState("");
+    const [commentsLoading, setCommentsLoading] = useState(false);
+    const [commentSending, setCommentSending] = useState(false);
+    const [commentError, setCommentError] = useState("");
 
     // Load current user
     useEffect(() => {
@@ -241,8 +261,34 @@ export default function PostCard({ post }: PostCardProps) {
         }
     }
 
-    function handleComment() {
-        router.push(`/posts/${post.id}`);
+    async function handleComment() {
+        const shouldOpen = !commentsOpen;
+        setCommentsOpen(shouldOpen);
+
+        if (!shouldOpen) {
+            return;
+        }
+
+        try {
+            setCommentsLoading(true);
+            setCommentError("");
+
+            const data = await apiRequest<Comment[]>(
+                `/posts/${post.id}/comments`
+            );
+
+            setComments(data);
+        } catch (error) {
+            console.error("Failed to load comments:", error);
+
+            setCommentError(
+                error instanceof Error
+                    ? error.message
+                    : "Failed to load comments"
+            );
+        } finally {
+            setCommentsLoading(false);
+        }
     }
 
     function handleEditStart() {
@@ -314,6 +360,43 @@ export default function PostCard({ post }: PostCardProps) {
         }
     }
 
+    async function handleSendComment() {
+        const content = commentInput.trim();
+
+        if (!content || commentSending) {
+            return;
+        }
+
+        try {
+            setCommentSending(true);
+            setCommentError("");
+
+            const newComment = await apiRequest<Comment>(
+                `/posts/${post.id}/comments`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({ content }),
+                }
+            );
+
+            setComments((previousComments) => [
+                ...previousComments,
+                newComment,
+            ]);
+
+            setCommentInput("");
+        } catch (error) {
+            console.error("Failed to send comment:", error);
+
+            setCommentError(
+                error instanceof Error
+                    ? error.message
+                    : "Failed to send comment"
+            );
+        } finally {
+            setCommentSending(false);
+        }
+    }
     async function handleEditSave() {
         if (editLoading || removingMediaId !== null) {
             return;
@@ -491,8 +574,8 @@ export default function PostCard({ post }: PostCardProps) {
                                     {deleteLoading
                                         ? "Deleting..."
                                         : isPlanPost
-                                          ? "Delete Plan"
-                                          : "Delete"}
+                                            ? "Delete Plan"
+                                            : "Delete"}
                                 </button>
                             </div>
                         )}
@@ -673,7 +756,7 @@ export default function PostCard({ post }: PostCardProps) {
                                                         {exercise.duration !==
                                                             undefined &&
                                                             exercise.duration >
-                                                                0 && (
+                                                            0 && (
                                                                 <span className="rounded-lg bg-[#10B981]/10 px-2.5 py-1 text-xs text-[#10B981]">
                                                                     {exercise.duration} min
                                                                 </span>
@@ -814,10 +897,9 @@ export default function PostCard({ post }: PostCardProps) {
                     {likeDataLoading
                         ? "Loading..."
                         : likeCount > 0
-                          ? `${likeCount} ${
-                                likeCount === 1 ? "like" : "likes"
+                            ? `${likeCount} ${likeCount === 1 ? "like" : "likes"
                             }`
-                          : "No likes yet"}
+                            : "No likes yet"}
                 </span>
             </div>
 
@@ -830,11 +912,10 @@ export default function PostCard({ post }: PostCardProps) {
                     type="button"
                     onClick={handleLike}
                     disabled={likeLoading || likeDataLoading}
-                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition disabled:opacity-50 ${
-                        liked
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition disabled:opacity-50 ${liked
                             ? "text-red-400 hover:bg-red-400/10"
                             : "text-slate-400 hover:bg-[#1A212C] hover:text-red-400"
-                    }`}
+                        }`}
                 >
                     <Heart
                         className="h-5 w-5"
@@ -853,16 +934,16 @@ export default function PostCard({ post }: PostCardProps) {
                     Comment
                 </button>
 
+
                 {/* Follow */}
                 <button
                     type="button"
                     onClick={handleFollow}
                     disabled={followLoading}
-                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition disabled:opacity-50 ${
-                        following
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition disabled:opacity-50 ${following
                             ? "text-[#10B981] hover:bg-[#10B981]/10"
                             : "text-slate-400 hover:bg-[#1A212C] hover:text-[#10B981]"
-                    }`}
+                        }`}
                 >
                     {following ? (
                         <UserCheck className="h-5 w-5" />
@@ -873,6 +954,93 @@ export default function PostCard({ post }: PostCardProps) {
                     {following ? "Following" : "Follow"}
                 </button>
             </div>
+
+            {/* Comments Section */}
+            {commentsOpen && (
+                <div className="border-t border-[#27303D] p-5">
+                    <h3 className="mb-4 text-sm font-semibold text-white">
+                        Comments ({comments.length})
+                    </h3>
+
+                    {commentsLoading ? (
+                        <p className="py-4 text-center text-sm text-slate-500">
+                            Loading comments...
+                        </p>
+                    ) : comments.length === 0 ? (
+                        <p className="mb-4 text-sm text-slate-500">
+                            No comments yet. Be the first to comment!
+                        </p>
+                    ) : (
+                        <div className="mb-4 space-y-4">
+                            {comments.map((comment) => (
+                                <div key={comment.id} className="flex items-start gap-3">
+
+                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#10B981]/10 text-sm font-semibold text-[#10B981]">
+                                        {comment.profileImageUrl ? (
+                                            <img
+                                                src={resolveProfileImageUrl(comment.profileImageUrl)}
+                                                alt={`${comment.username || "User"}'s profile`}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            comment.username?.charAt(0).toUpperCase() || "U"
+                                        )}
+                                    </div>
+
+                                    <div className="min-w-0 flex-1 rounded-xl bg-[#0B0F17] px-4 py-3">
+                                        <p className="text-sm font-medium text-white">
+                                            {comment.username}
+                                        </p>
+                                        <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">
+                                            {comment.content}
+                                        </p>
+                                        <p className="mt-2 text-xs text-slate-500">
+                                            {new Date(comment.createdAt).toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {commentError && (
+                        <p className="mb-3 text-sm text-red-400">{commentError}</p>
+                    )}
+
+                    <form
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            void handleSendComment();
+                        }}
+                        className="flex items-center gap-2"
+                    >
+                        <input
+                            type="text"
+                            value={commentInput}
+                            onChange={(event) => setCommentInput(event.target.value)}
+                            placeholder="Write a comment..."
+                            maxLength={2000}
+                            disabled={commentSending}
+                            className="min-w-0 flex-1 rounded-full border border-[#27303D] bg-[#0B0F17] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-[#10B981] disabled:opacity-50"
+                        />
+
+                        <button
+                            type="submit"
+                            disabled={!commentInput.trim() || commentSending}
+                            aria-label="Send comment"
+                            title="Send comment"
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#10B981] text-white transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            {commentSending ? (
+                                <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                            ) : (
+                                <Send className="h-5 w-5" />
+                            )}
+                        </button>
+                    </form>
+                </div>
+            )}
+
         </article>
     );
 }

@@ -140,16 +140,19 @@ public long getCommentCount(Long postId) {
                         new RuntimeException("User not found"));
     }
 
-    private CommentResponse mapToResponse(Comment comment) {
+   
+private CommentResponse mapToResponse(Comment comment) {
 
-        return CommentResponse.builder()
-                .id(comment.getId())
-                .postId(comment.getPost().getId())
-                .userId(comment.getUser().getId())
-                .username(comment.getUser().getUsername())
-                .content(comment.getContent())
-                .createdAt(comment.getCreatedAt())
-                .updatedAt(comment.getUpdatedAt())
-                .build();
-    }
+    return CommentResponse.builder()
+            .id(comment.getId())
+            .postId(comment.getPost().getId())
+            .userId(comment.getUser().getId())
+            .username(comment.getUser().getUsername())
+            .profileImageUrl(comment.getUser().getProfileImageUrl())
+            .content(comment.getContent())
+            .createdAt(comment.getCreatedAt())
+            .updatedAt(comment.getUpdatedAt())
+            .build();
+}
+
 }
