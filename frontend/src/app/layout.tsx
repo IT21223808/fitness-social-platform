@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FitConnect | Fitness Social Platform",
+  title: "HealthHub | Fitness Social Platform",
   description:
     "Connect with fitness enthusiasts, share workouts, explore workout and meal plans, and track your fitness journey with FitConnect.",
 };

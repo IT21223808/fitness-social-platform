@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  Suspense,
   useEffect,
   useRef,
   useState,
@@ -52,7 +53,7 @@ type MealPlan = {
   createdAt: string;
 };
 
-export default function MealPlansPage() {
+function MealPlansContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -1092,5 +1093,26 @@ export default function MealPlansPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function MealPlansPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0B0F17] p-6 lg:pl-64">
+          <div
+            className="mx-auto max-w-6xl animate-pulse"
+            aria-label="Loading meal plans"
+          >
+            <div className="h-4 w-32 rounded bg-[#27303D]" />
+            <div className="mt-3 h-9 w-56 rounded bg-[#27303D]" />
+            <div className="mt-8 h-72 rounded-2xl border border-[#27303D] bg-[#141A23]" />
+          </div>
+        </div>
+      }
+    >
+      <MealPlansContent />
+    </Suspense>
   );
 }

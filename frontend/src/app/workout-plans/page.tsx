@@ -3,6 +3,7 @@
 import {
   ChangeEvent,
   FormEvent,
+  Suspense,
   useEffect,
   useRef,
   useState,
@@ -67,7 +68,7 @@ const emptyExercise: WorkoutExercise = {
   duration: "",
 };
 
-export default function WorkoutPlansPage() {
+function WorkoutPlansContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -1209,5 +1210,26 @@ export default function WorkoutPlansPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function WorkoutPlansPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0B0F17] p-6 lg:pl-64">
+          <div
+            className="mx-auto max-w-6xl animate-pulse"
+            aria-label="Loading workout plans"
+          >
+            <div className="h-4 w-32 rounded bg-[#27303D]" />
+            <div className="mt-3 h-9 w-64 rounded bg-[#27303D]" />
+            <div className="mt-8 h-72 rounded-2xl border border-[#27303D] bg-[#141A23]" />
+          </div>
+        </div>
+      }
+    >
+      <WorkoutPlansContent />
+    </Suspense>
   );
 }

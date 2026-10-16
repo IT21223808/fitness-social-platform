@@ -77,7 +77,7 @@ type MealPlan = {
     updatedAt?: string;
 };
 
-type Post = {
+export type PostCardPost = {
     id: number;
     userId: number;
     username: string;
@@ -96,6 +96,10 @@ type Post = {
 
     workoutPlan?: WorkoutPlan;
     mealPlan?: MealPlan;
+
+    likeCount?: number;
+    commentCount?: number;
+    likedByCurrentUser?: boolean;
 };
 
 type User = {
@@ -118,26 +122,40 @@ type Comment = {
 
 
 type PostCardProps = {
-    post: Post;
+    post: PostCardPost;
+    initialCurrentUserId?: number;
 };
 
-export default function PostCard({ post }: PostCardProps) {
+export default function PostCard({
+    post,
+    initialCurrentUserId,
+}: PostCardProps) {
     const router = useRouter();
 
-    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+    const [loadedCurrentUserId, setLoadedCurrentUserId] =
+        useState<number | null>(null);
+    const currentUserId = initialCurrentUserId ?? loadedCurrentUserId;
 
-    const [liked, setLiked] = useState(false);
-    const [likeCount, setLikeCount] = useState(0);
+    const [liked, setLiked] = useState(
+        post.likedByCurrentUser ?? false
+    );
+    const [likeCount, setLikeCount] = useState(post.likeCount ?? 0);
 
     const [following, setFollowing] = useState(false);
 
     const [likeLoading, setLikeLoading] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
-    const [likeDataLoading, setLikeDataLoading] = useState(true);
+    const [likeDataLoading, setLikeDataLoading] = useState(
+        post.likeCount === undefined ||
+            post.likedByCurrentUser === undefined
+    );
 
     const [menuOpen, setMenuOpen] = useState(false);
 
     const [editing, setEditing] = useState(false);
+    const [postDescription, setPostDescription] = useState(
+        post.description
+    );
     const [editDescription, setEditDescription] = useState(
         post.description
     );
@@ -168,24 +186,33 @@ export default function PostCard({ post }: PostCardProps) {
 
     // Load current user
     useEffect(() => {
+        if (initialCurrentUserId !== undefined) {
+            return;
+        }
+
         async function loadCurrentUser() {
             try {
                 const user = await apiRequest<User>("/users/me");
-                setCurrentUserId(user.id);
+                setLoadedCurrentUserId(user.id);
             } catch (error) {
                 console.error("Failed to load current user:", error);
             }
         }
 
         loadCurrentUser();
-    }, []);
+    }, [initialCurrentUserId]);
 
     // Load like information
     useEffect(() => {
+        if (
+            post.likeCount !== undefined &&
+            post.likedByCurrentUser !== undefined
+        ) {
+            return;
+        }
+
         async function loadLikeData() {
             try {
-                setLikeDataLoading(true);
-
                 const [count, isLiked] = await Promise.all([
                     apiRequest<number>(`/posts/${post.id}/likes/count`),
                     apiRequest<boolean>(`/posts/${post.id}/likes/me`),
@@ -201,7 +228,11 @@ export default function PostCard({ post }: PostCardProps) {
         }
 
         loadLikeData();
-    }, [post.id]);
+    }, [
+        post.id,
+        post.likeCount,
+        post.likedByCurrentUser,
+    ]);
 
     async function handleLike() {
         if (likeLoading) {
@@ -308,7 +339,7 @@ export default function PostCard({ post }: PostCardProps) {
         }
 
         setActionError("");
-        setEditDescription(post.description);
+        setEditDescription(postDescription);
         setRemovedMediaIds([]);
         setEditing(true);
         setMenuOpen(false);
@@ -319,7 +350,7 @@ export default function PostCard({ post }: PostCardProps) {
             return;
         }
 
-        setEditDescription(post.description);
+        setEditDescription(postDescription);
         setRemovedMediaIds([]);
         setActionError("");
         setEditing(false);
@@ -411,7 +442,7 @@ export default function PostCard({ post }: PostCardProps) {
             setEditLoading(true);
             setActionError("");
 
-            await apiRequest<Post>(`/posts/${post.id}`, {
+            await apiRequest<PostCardPost>(`/posts/${post.id}`, {
                 method: "PUT",
                 body: JSON.stringify({
                     description: editDescription.trim(),
@@ -419,7 +450,7 @@ export default function PostCard({ post }: PostCardProps) {
                 }),
             });
 
-            post.description = editDescription.trim();
+            setPostDescription(editDescription.trim());
 
             setEditing(false);
             setRemovedMediaIds([]);
@@ -702,10 +733,10 @@ export default function PostCard({ post }: PostCardProps) {
             ) : (
                 <>
                     {/* Normal Post Description */}
-                    {!isPlanPost && post.description && (
+                    {!isPlanPost && postDescription && (
                         <div className="px-5 pb-4">
                             <p className="whitespace-pre-wrap text-sm leading-6 text-slate-300">
-                                {post.description}
+                                {postDescription}
                             </p>
                         </div>
                     )}

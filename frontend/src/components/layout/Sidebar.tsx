@@ -29,11 +29,6 @@ const menuItems = [
     path: "/explore",
   },
   {
-    label: "Create Post",
-    icon: PlusSquare,
-    path: "/create",
-  },
-  {
     label: "Workout",
     icon: Dumbbell,
     path: "/workout-plans",
@@ -83,7 +78,7 @@ export default function Sidebar() {
       <div className="flex h-20 items-center border-b border-[#27303D] px-6">
         <div className="flex items-center gap-3">
           <Image
-            src="/fit_logo.png"
+            src="/Hub_logo.png"
             alt="FitSocial"
             width={42}
             height={42}
@@ -92,7 +87,7 @@ export default function Sidebar() {
 
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white">
-              Pulse<span className="text-[#10B981]">Fit</span>
+            Health<span className="text-[#10B981]">Hub</span>
             </h1>
 
             <p className="text-xs text-gray-500">
@@ -196,7 +191,7 @@ export default function Sidebar() {
           />
 
           <span>
-            Fit<span className="text-[#10B981]">Social</span>
+            Health<span className="text-[#10B981]">Hub</span>
           </span>
         </button>
 
