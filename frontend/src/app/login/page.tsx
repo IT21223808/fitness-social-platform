@@ -1,7 +1,10 @@
+
 "use client";
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
 type LoginResponse = {
@@ -13,7 +16,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -33,13 +36,10 @@ export default function LoginPage() {
       });
 
       localStorage.setItem("token", data.token);
-
       router.push("/home");
     } catch (error) {
       setError(
-        error instanceof Error
-          ? error.message
-          : "Login failed"
+        error instanceof Error ? error.message : "Login failed"
       );
     } finally {
       setLoading(false);
@@ -47,74 +47,127 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0B0F17] px-4">
-      <div className="w-full max-w-md rounded-2xl border border-[#27303D] bg-[#141A23] p-6">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-white">
-            Welcome Back
-          </h1>
+    <main className="min-h-screen bg-[#0B0F17] text-white lg:grid lg:grid-cols-2">
+      {/* Left side: Fitness image only */}
+      <section className="relative min-h-[260px] overflow-hidden bg-[#111A20] sm:min-h-[340px] lg:min-h-screen">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+             backgroundImage: "url('/login.jpg')",
+          }}
+        />
 
-          <p className="mt-2 text-sm text-slate-400">
-            Sign in to your fitness account
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F17]/30 to-transparent" />
+      </section>
+
+      {/* Right side: Login form */}
+      <section className="flex min-h-[calc(100vh-260px)] items-center justify-center px-5 py-10 sm:px-10 lg:min-h-screen lg:px-12">
+        <div className="w-full max-w-md">
+          <div className="mb-8">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-[#10B981]">
+              Welcome back
+            </p>
+
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Sign in to HealthHub
+            </h1>
+
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Continue your fitness journey and stay connected.
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <label
+                htmlFor="email"
+                className="mb-2 block text-sm font-medium text-slate-300"
+              >
+                Email address
+              </label>
+
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                autoComplete="email"
+                required
+                className="w-full rounded-xl border border-[#27303D] bg-[#141A23] px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/15"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="mb-2 block text-sm font-medium text-slate-300"
+              >
+                Password
+              </label>
+
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  required
+                  className="w-full rounded-xl border border-[#27303D] bg-[#141A23] px-4 py-3.5 pr-12 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/15"
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPassword((previous) => !previous)
+                  }
+                  aria-label={
+                    showPassword ? "Hide password" : "Show password"
+                  }
+                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 right-3 flex items-center rounded text-slate-400 transition hover:text-[#10B981] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#10B981]"
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} aria-hidden="true" />
+                  ) : (
+                    <Eye size={20} aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div
+                role="alert"
+                className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+              >
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10B981] px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? "Signing in..." : "Sign In"}
+              {!loading && <ArrowRight size={18} />}
+            </button>
+          </form>
+
+          <p className="mt-7 text-center text-sm text-slate-400">
+            Don't have an account?{" "}
+            <Link
+              href="/register"
+              className="font-semibold text-[#10B981] transition hover:text-emerald-400"
+            >
+              Create account
+            </Link>
           </p>
         </div>
-
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">
-              Email
-            </label>
-
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-              className="w-full rounded-xl border border-[#27303D] bg-[#0B0F17] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-[#10B981]"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-300">
-              Password
-            </label>
-
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-              className="w-full rounded-xl border border-[#27303D] bg-[#0B0F17] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-[#10B981]"
-            />
-          </div>
-
-          {error && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-[#10B981] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#059669] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-slate-500">
-          Don't have an account?{" "}
-          <a
-            href="/register"
-            className="font-medium text-[#10B981] hover:text-[#059669]"
-          >
-            Create account
-          </a>
-        </p>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
