@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,13 +36,41 @@ public class FeedService {
         List<MediaResponse> media = postMediaRepository
                 .findByPostOrderByDisplayOrderAsc(post)
                 .stream()
-                .map(item -> MediaResponse.builder()
-                        .id(item.getId())
-                        .mediaUrl(item.getMediaUrl())
-                        .mediaType(item.getMediaType())
-                        .displayOrder(item.getDisplayOrder())
-                        .build())
+                .map(this::mapMediaToResponse)
                 .toList();
+
+        return mapToResponse(post, media);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> mapToResponses(List<Post> posts) {
+        if (posts.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> postIds = posts.stream()
+                .map(Post::getId)
+                .toList();
+        Map<Long, List<MediaResponse>> mediaByPostId =
+                postMediaRepository
+                        .findByPostIdInOrderByPostIdAscDisplayOrderAsc(postIds)
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                media -> media.getPost().getId(),
+                                Collectors.mapping(
+                                        this::mapMediaToResponse,
+                                        Collectors.toList())));
+
+        return posts.stream()
+                .map(post -> mapToResponse(
+                        post,
+                        mediaByPostId.getOrDefault(post.getId(), List.of())))
+                .toList();
+    }
+
+    private PostResponse mapToResponse(
+            Post post,
+            List<MediaResponse> media) {
 
         WorkoutPlanResponse workoutPlan = null;
 
@@ -70,6 +100,15 @@ public class FeedService {
                 .mealPlan(mealPlan)
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
+                .build();
+    }
+
+    private MediaResponse mapMediaToResponse(PostMedia item) {
+        return MediaResponse.builder()
+                .id(item.getId())
+                .mediaUrl(item.getMediaUrl())
+                .mediaType(item.getMediaType())
+                .displayOrder(item.getDisplayOrder())
                 .build();
     }
 

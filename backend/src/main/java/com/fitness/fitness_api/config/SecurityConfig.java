@@ -76,6 +76,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/feed/**")
                         .authenticated()
 
+                        .requestMatchers("/api/explore/**")
+                        .authenticated()
+
                         // Public profile viewing
                         .requestMatchers("/api/users/*")
                         .permitAll()

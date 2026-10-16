@@ -3,11 +3,13 @@ package com.fitness.fitness_api.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
+@BatchSize(size = 50)
 @Getter
 @Setter
 @NoArgsConstructor

@@ -2,6 +2,7 @@ package com.fitness.fitness_api.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "workout_plans")
+@BatchSize(size = 50)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -37,6 +39,7 @@ public class WorkoutPlan {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
+    @BatchSize(size = 50)
     @Builder.Default
     private List<WorkoutExercise> exercises = new ArrayList<>();
 
